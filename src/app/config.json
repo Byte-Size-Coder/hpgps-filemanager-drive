@@ -1,0 +1,22 @@
+{
+  "name": "hpgps filemanager drive",
+  "supportEmail": "",
+  "version": "0.0.1",
+  "items": [{
+    "url": "hpgpsFilemanagerDrive.html",
+    "path": "DriveAppLink/",
+    "menuName": {
+      "en": "hpgps filemanager drive"
+    },
+    "icon": "images/icon.svg"
+  }],
+  
+  "onStartup": true,
+  "onShutdown": true,
+  "dev": {
+    "root": "hpgpsFilemanagerDrive",
+    "dist": {
+      "host": "https://www.example.com/myaddin/"
+    }
+  }
+}
