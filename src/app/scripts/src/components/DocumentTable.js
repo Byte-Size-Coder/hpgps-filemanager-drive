@@ -55,7 +55,9 @@ const DocumentTable = ({ files }) => {
 				display: 'flex',
 				flexDirection: 'column',
 				gap: '1rem',
-				width: '100%',
+				width: '95%',
+				paddingLeft: '2rem',
+				paddingRight: '2rem'
 			}}
 		>
 			<div>

@@ -57,7 +57,7 @@ module.exports = merge(common, {
                     'css-loader',
                     {
                         loader: './src/.dev/loaders/css-sandbox/css-sandbox.js',
-                        options: { prefix: '#driverProductivity' }
+                        options: { prefix: '#HPGPS-drive' }
                     }
                 ]
             },
@@ -117,7 +117,7 @@ module.exports = merge(common, {
                     transform: transform,
                     to: 'configuration.json'
                 },
-                { from: './src/app/translations/', to: 'translations/' }
+                // { from: './src/app/translations/', to: 'translations/' }
             ]
         })
     ],

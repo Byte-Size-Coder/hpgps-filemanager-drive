@@ -20,9 +20,6 @@ const App = ({ database, driver, device, trailer }) => {
 	};
 
 	useEffect(() => {
-		console.log(driver);
-		console.log(device);
-		console.log(trailer);
 		const q = query(
 			collection(fbFirestore, database),
 			where('tags', 'array-contains-any', [device, driver, trailer])
@@ -55,7 +52,9 @@ const App = ({ database, driver, device, trailer }) => {
 			setFiles(fetchedFiles);
 		});
 	}, []);
-	return <DocumentTable files={files} />;
+	return <div id="HPGPS-drive" style={{height: '100vh', width: '100vw',}}>
+			<DocumentTable files={files} />
+		</div>;
 };
 
 export default App;
