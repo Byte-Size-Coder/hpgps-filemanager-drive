@@ -2,9 +2,9 @@ let body = document.getElementsByTagName('body')[0];
 import icon from '../images/Font_Awesome_5_solid_chevron-left.svg';
 import xIcon from '../images/close-round.svg';
 import addinIcon from '../../app/images/icon.svg';
+//    <link rel="stylesheet" href="https://mypreview.geotab.com/drive/app/css/main.css">
 let loginExample = `
 
-    <link rel="stylesheet" href="https://mypreview.geotab.com/drive/app/css/main.css">
 
 <style>
     body {

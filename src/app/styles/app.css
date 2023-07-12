@@ -1,49 +1,37 @@
 @import 'react-tooltip/dist/react-tooltip.css';
 
 .nightMode {
-	color: white;
-}
-
-table {
-	border: 1px solid lightgray;
-}
-
-tbody {
-	border-bottom: 1px solid lightgray;
-}
-
-th {
-	border-bottom: 1px solid lightgray;
-	border-right: 1px solid lightgray;
-	padding: 2px 4px;
-}
-
-td {
-	padding: 1rem 1rem;
-	border: 1px solid lightgray;
-}
-
-tfoot {
-	color: gray;
-}
-
-tfoot th {
-	font-weight: normal;
+    color: white;
 }
 
 .pagenation-foot {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .pagenation-button {
-	width: 50px;
-	display: flex;
-	justify-content: center;
-	align-items: center;
+    width: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .cell-overflow {
-	text-overflow: ellipsis;
+    text-overflow: ellipsis;
+}
+
+.account-info {
+    display: flex;
+    gap: 3rem;
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
+.sticky {
+    position: sticky !important;
+    left: 0;
+    top: 0;
+    z-index: 1;
+    background-color: white;
 }
