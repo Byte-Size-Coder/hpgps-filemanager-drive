@@ -9,3 +9,42 @@ export const makeid = (length) => {
 	}
 	return result;
 };
+
+export const getGroups = (device, user, groups) => {
+	console.log(groups);
+	let deviceGroups = [];
+	let userGroups = [];
+	if (device.name) {
+		deviceGroups = device.groups.map((g) => g.id);
+	}
+
+	if (user !== undefined) {
+		if (user.reportGroups) {
+			userGroups.push(...user.reportGroups.map((g) => g.id));
+		}
+
+		if (user.privateUserGroups) {
+			userGroups.push(...user.privateUserGroups.map((g) => g.id));
+		}
+
+		if (user.securityGroups) {
+			userGroups.push(...user.securityGroups.map((g) => g.id));
+		}
+	}
+
+	const groupIdsCombined = [...deviceGroups, ...userGroups];
+
+	const result = [];
+
+	groupIdsCombined.forEach((groupId) => {
+		const group = groups.find((g) => g.id === groupId);
+
+		if (group) {
+			result.push(group.name);
+		}
+	});
+
+	console.log(result);
+
+	return result;
+};

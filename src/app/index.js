@@ -7,10 +7,9 @@
 // Allowing babel to work with older versions of IE
 const regeneratorRuntime = require('regenerator-runtime');
 
-if(!geotab.addin.hpgpsFilemanagerDrive){
-    
-    require('./scripts/main');
-    
+if (!geotab.addin.hpgpsFilemanagerDrive) {
+	require('./scripts/main');
 }
 
 require('./styles/main.css');
+require('./styles/app.css');
