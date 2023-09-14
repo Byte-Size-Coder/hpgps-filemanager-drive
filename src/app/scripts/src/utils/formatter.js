@@ -11,14 +11,17 @@ export const makeid = (length) => {
 };
 
 export const getGroups = (device, user, groups) => {
-	console.log(groups);
 	let deviceGroups = [];
 	let userGroups = [];
-	if (device.name) {
+	if (device !== null) {
 		deviceGroups = device.groups.map((g) => g.id);
 	}
 
 	if (user !== undefined) {
+		if (user.driverGroups) {
+			userGroups.push(...user.driverGroups.map((g) => g.id));
+		}
+
 		if (user.reportGroups) {
 			userGroups.push(...user.reportGroups.map((g) => g.id));
 		}
@@ -43,8 +46,6 @@ export const getGroups = (device, user, groups) => {
 			result.push(group.name);
 		}
 	});
-
-	console.log(result);
 
 	return result;
 };

@@ -69,8 +69,30 @@ geotab.addin.hpgpsFilemanagerDrive = function () {
 		focus: function (freshApi, freshState) {
 			// getting the current user to display in the UI
 			freshApi.getSession((session) => {
-				freshApi.multiCall(
-					[
+				let calls = [];
+
+				console.log(freshState.device.id);
+
+				if (freshState.device.id === 'NoDeviceId') {
+					calls = [
+						[
+							'Get',
+							{
+								typeName: 'User',
+								search: {
+									name: session.userName,
+								},
+							},
+						],
+						[
+							'Get',
+							{
+								typeName: 'Group',
+							},
+						],
+					];
+				} else {
+					calls = [
 						[
 							'Get',
 							{
@@ -94,7 +116,7 @@ geotab.addin.hpgpsFilemanagerDrive = function () {
 							{
 								typeName: 'TrailerAttachment',
 								search: {
-									device: {
+									deviceSearch: {
 										id: freshState.device.id,
 									},
 								},
@@ -106,35 +128,77 @@ geotab.addin.hpgpsFilemanagerDrive = function () {
 								typeName: 'Group',
 							},
 						],
-					],
-					function (result) {
-						const device = result[0][0] ? result[0][0] : null;
-						const user = result[1][0] ? result[1][0] : null;
-						const trailer = result[2];
-						const groups = result[3];
-						// show main content
-						appEl.className = appEl.className.replace('hidden', '').trim();
+					];
+				}
 
-						const container = document.getElementById('scroll-content');
-						if (container) {
-							const root = createRoot(container);
-							root.render(
-								<App
-									api={freshApi}
-									database={session.database}
-									groups={getGroups(device, user, groups)}
-									device={
-										device.name
-											? `${device.name} (${device.serialNumber})`
-											: 'none'
-									}
-									driver={
-										user !== null ? `${user.firstName} ${user.lastName}` : ''
-									}
-									trailer={trailer.map((t) => t.name)}
-								/>
-							);
+				freshApi.multiCall(
+					calls,
+					function (result) {
+						let device = null;
+						let user = null;
+						let trailer = [];
+						let groups = [];
+
+						if (freshState.device.id === 'NoDeviceId') {
+							device = null;
+							user = result[0][0] ? result[0][0] : null;
+							trailer = [];
+							groups = result[1];
+						} else {
+							device = result[0][0] ? result[0][0] : null;
+							user = result[1][0] ? result[1][0] : null;
+							trailer = result[2];
+							groups = result[3];
 						}
+
+						console.log(trailer);
+
+						const trailerIds = trailer.map((t) => t.trailer.id);
+
+						freshApi.multiCall(
+							trailerIds.map((trailerId) => [
+								'Get',
+								{
+									typeName: 'Trailer',
+									search: {
+										id: trailerId,
+									},
+								},
+								,
+							]),
+							function (result) {
+								let newTrailers = [];
+
+								if (result.length > 0) {
+									newTrailers = result.map((r) => r[0].name);
+								}
+								// show main content
+								appEl.className = appEl.className.replace('hidden', '').trim();
+
+								const container = document.getElementById('scroll-content');
+								if (container) {
+									const root = createRoot(container);
+									root.render(
+										<App
+											api={freshApi}
+											database={session.database}
+											groups={getGroups(device, user, groups)}
+											device={
+												device !== null
+													? `${device.name} (${device.serialNumber})`
+													: 'none'
+											}
+											driver={
+												user !== null
+													? `${user.firstName} ${user.lastName}`
+													: ''
+											}
+											trailer={newTrailers}
+										/>
+									);
+								}
+							}
+						);
 					},
 					function (error) {
 						console.log(error);

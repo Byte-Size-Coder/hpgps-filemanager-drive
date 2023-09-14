@@ -15,13 +15,10 @@ const DocumentMobile = ({ files }) => {
 	const [expandedId, setExpandedId] = useState(null);
 	const [filterFiles, setFilterFiles] = useState([]);
 
-	console.log(files);
-
 	useEffect(() => {
 		if (globalFilter === '') {
 			setFilterFiles([...files]);
 		} else {
-			console.log('IN HERE?');
 			const newFilterFiles = files.filter((file) =>
 				file.fileName.toLowerCase().includes(globalFilter.toLowerCase())
 			);
@@ -48,12 +45,15 @@ const DocumentMobile = ({ files }) => {
 			</Box>
 			<Box sx={{ width: '100%' }}>
 				{filterFiles.map((file) => {
-					console.log(file);
 					return (
 						<Accordion
 							key={file.id}
 							expanded={file.id === expandedId}
-							onChange={() => setExpandedId(file.id)}
+							onChange={() => {
+								expandedId === file.id
+									? setExpandedId(null)
+									: setExpandedId(file.id);
+							}}
 						>
 							<AccordionSummary expandIcon={<ExpandMoreIcon />}>
 								<Typography variant="h4">{file.fileName}</Typography>
