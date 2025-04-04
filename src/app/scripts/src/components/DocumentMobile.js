@@ -12,7 +12,7 @@ import DebouncedInput from './DebouncedInput';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import dayjs from 'dayjs';
 
-const DocumentMobile = ({ files }) => {
+const DocumentMobile = ({ files, devices, drivers, trailers, groups }) => {
     const [globalFilter, setGlobalFilter] = useState('');
     const [expandedId, setExpandedId] = useState(null);
     const [filterFiles, setFilterFiles] = useState([]);
@@ -27,6 +27,19 @@ const DocumentMobile = ({ files }) => {
             setFilterFiles(newFilterFiles);
         }
     }, [globalFilter, files]);
+
+    const filterDriverData = (ownerData, driverData) => {
+        const result = [];
+        ownerData.forEach(owner => {
+            driverData.forEach(data => {
+                if (data === owner) {
+                    result.push(data);
+                }
+            })
+        });
+
+        return result;
+    }
 
     return (
         <Box
@@ -82,7 +95,7 @@ const DocumentMobile = ({ files }) => {
                                             Groups
                                         </Typography>
                                         <Typography variant="body1">
-                                            {file.owners.groups.join(', ')}
+                                            {filterDriverData(file.owners.groups, groups).join(', ')}
                                         </Typography>
                                     </Box>
                                 )}
@@ -92,7 +105,7 @@ const DocumentMobile = ({ files }) => {
                                             Drivers
                                         </Typography>
                                         <Typography variant="body1">
-                                            {file.owners.drivers.join(', ')}
+                                            {filterDriverData(file.owners.drivers, drivers).join(', ')}
                                         </Typography>
                                     </Box>
                                 )}
@@ -102,7 +115,7 @@ const DocumentMobile = ({ files }) => {
                                             Vehicles
                                         </Typography>
                                         <Typography variant="body1">
-                                            {file.owners.vehicles.join(', ')}
+                                            {filterDriverData(file.owners.vehicles, devices).join(', ')}
                                         </Typography>
                                     </Box>
                                 )}
@@ -112,7 +125,7 @@ const DocumentMobile = ({ files }) => {
                                             Trailers
                                         </Typography>
                                         <Typography variant="body1">
-                                            {file.owners.trailers.join(', ')}
+                                            {filterDriverData(file.owners.trailers, trailers).join(', ')}                         
                                         </Typography>
                                     </Box>
                                 )}

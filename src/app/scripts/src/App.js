@@ -168,7 +168,7 @@ const App = ({ api, database, groups, driver, device, trailer }) => {
 					</Typography>
 				</Box>
 			</Box>
-			{mobile ? <DocumentMobile files={files} /> : <DocumentTable files={files} />}
+			{mobile ? <DocumentMobile files={files} devices={[device]} drivers={[driver]} trailers={[...trailer]} groups={[...groups]}/> : <DocumentTable files={files} />}
 		</Box>
 	);
 };

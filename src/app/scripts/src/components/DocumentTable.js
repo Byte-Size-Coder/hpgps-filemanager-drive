@@ -29,7 +29,7 @@ import {
 	Button,
 } from '@mui/material';
 
-import { columns, fuzzyFilter } from '../utils/table-helper';
+import { columns, globalStringFilter, stringMatchFilter } from '../utils/table-helper';
 
 import '../../../styles/app.css';
 
@@ -41,7 +41,7 @@ const DocumentTable = ({ files }) => {
 		data: files,
 		columns,
 		filterFns: {
-			fuzzy: fuzzyFilter,
+			fuzzy: stringMatchFilter,
 		},
 		state: {
 			columnFilters,
@@ -49,7 +49,7 @@ const DocumentTable = ({ files }) => {
 		},
 		onColumnFiltersChange: setColumnFilters,
 		onGlobalFilterChange: setGlobalFilter,
-		globalFilterFn: fuzzyFilter,
+		globalFilterFn: globalStringFilter,
 		getCoreRowModel: getCoreRowModel(),
 		getFilteredRowModel: getFilteredRowModel(),
 		getSortedRowModel: getSortedRowModel(),
