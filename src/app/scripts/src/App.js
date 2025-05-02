@@ -14,6 +14,8 @@ import { getAuth, signInAnonymously } from 'firebase/auth';
 
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 
+import { verifyDatabaseCode } from './utils/verifyDatabaseCode';
+
 async function getContentByTags(ids) {
 	// don't run if there aren't any ids or a path for the collection
 	if (!ids || !ids.length) return [];
@@ -41,6 +43,7 @@ async function getContentByTags(ids) {
 const App = ({ api, database, groups, driver, device, trailer }) => {
 	const [files, setFiles] = useState([]);
 	const [mobile, setMobile] = useState(false);
+	const [codeValid, setCodeValid] = useState(null);
 
 	const handleDownload = (filePath, fileName) => {
 		const storageRef = ref(fbStorage, filePath);
@@ -55,54 +58,66 @@ const App = ({ api, database, groups, driver, device, trailer }) => {
 	};
 
 	useEffect(() => {
-		function updateSize() {
-			setMobile(window.innerWidth < 1200);
-		}
+		const updateSize = () => setMobile(window.innerWidth < 1200);
 		window.addEventListener('resize', updateSize);
 		updateSize();
-		signInAnonymously(fbAuth)
-			.then(async () => {
+	
+		// Step 1: Extract code from URL hash
+		const hash = window.location.hash;
+		const [_, queryString] = hash.split('?');
+		let codeFromUrl = '';
+	
+		if (queryString) {
+			const params = new URLSearchParams(queryString);
+			codeFromUrl = params.get('code');
+		}
+	
+		if (!codeFromUrl || !database) {
+			console.warn('Missing code or database.');
+			return;
+		}
+	
+		// Step 2: Verify code
+		const verifyAndFetch = async () => {
+			const isValid = await verifyDatabaseCode(codeFromUrl, database, fbFirestore);
+			if (!isValid) {
+				console.warn('Invalid access code');
+				setCodeValid(false);
+				return;
+			}
+
+			setCodeValid(true);
+	
+			// Step 3: Sign in and fetch files
+			try {
+				await signInAnonymously(fbAuth);
+	
 				const queryTags = [device, driver, ...trailer, ...groups];
-
-				if (queryTags.length == 0) return;
-
+				if (queryTags.length === 0) return;
+	
 				const fetchedFiles = [];
 				const batches = [];
-
+	
 				while (queryTags.length) {
-					// firestore limits batches to 10
 					const batch = queryTags.splice(0, 30);
 					const q = query(
 						collection(fbFirestore, database),
 						where('tags', 'array-contains-any', batch)
 					);
-
+	
 					batches.push(
-						getDocs(q)
-							.then((snapshot) => {
-								snapshot.forEach((doc) => {
+						getDocs(q).then((snapshot) => {
+							snapshot.forEach((doc) => {
+								if (doc.data().fileName) {
 									const associated = [];
-
+	
 									doc.data().tags.forEach((tag) => {
-										if (tag === device) {
-											associated.push(device);
-										} else if (tag === driver) {
-											associated.push(driver);
-										}
-
-										trailer.forEach((t) => {
-											if (t === tag) {
-												associated.push(t);
-											}
-										});
-
-										groups.forEach((g) => {
-											if (g === tag) {
-												associated.push(g);
-											}
-										});
+										if (tag === device) associated.push(device);
+										else if (tag === driver) associated.push(driver);
+										if (trailer.includes(tag)) associated.push(tag);
+										if (groups.includes(tag)) associated.push(tag);
 									});
-
+	
 									fetchedFiles.push({
 										id: doc.id,
 										...doc.data(),
@@ -117,58 +132,89 @@ const App = ({ api, database, groups, driver, device, trailer }) => {
 														)
 													}
 												>
-													<OpenInNewRoundedIcon
-														fontSize="large"
-														color="primary"
-													/>
+													<OpenInNewRoundedIcon fontSize="large" color="primary" />
 												</IconButton>
 											</Tooltip>
 										),
 									});
-								});
-							})
-							.catch((error) => {
-								console.error(error);
-							})
+								}
+							});
+						})
 					);
 				}
-
+	
 				Promise.all(batches).then(() => setFiles(fetchedFiles));
-			})
-			.catch((error) => {
-				console.error(error);
-			});
+			} catch (error) {
+				console.error('Error during anonymous sign-in or file fetch:', error);
+			}
+		};
+	
+		verifyAndFetch();
+	
 		return () => window.removeEventListener('resize', updateSize);
 	}, []);
+
 	return (
 		<Box id="HPGPS-drive" sx={{ padding: '2rem' }}>
-			<Box
+			{codeValid === null ? (
+				<Box
 				sx={{
 					display: 'flex',
-					flexDirection: { xs: 'column', sm: 'column', md: 'row' },
-					gap: { xs: '2rem', sm: '2rem', md: '3rem' },
+					justifyContent: 'center',
+					alignItems: 'center',
+					height: '100vh',
 				}}
-			>
-				<Box sx={{ display: 'flex', gap: '0.5rem' }}>
-					<Typography variant="h4">Groups: </Typography>
-					<Typography variant="h4">{groups.join(', ')}</Typography>
+				>	
+					<Typography variant="h5">Verifying access...</Typography>
 				</Box>
-				<Box sx={{ display: 'flex', gap: '0.5rem' }}>
-					<Typography variant="h4">Driver: </Typography>
-					<Typography variant="h4">{driver}</Typography>
-				</Box>
-				<Box sx={{ display: 'flex', gap: '0.5rem' }}>
-					<Typography variant="h4">Vehicle: </Typography>
-					<Typography variant="h4">{device ? device : 'none'}</Typography>
-				</Box>
-				<Box sx={{ display: 'flex', gap: '0.5rem' }}>
-					<Typography variant="h4">Trailer(s): </Typography>
-					<Typography variant="h4">
-						{trailer.length > 0 ? trailer.join(', ') : 'none'}
+		) : (
+			<>
+				{codeValid === true ? (
+				<>
+					<Box
+					sx={{
+						display: 'flex',
+						flexDirection: { xs: 'column', sm: 'column', md: 'row' },
+						gap: { xs: '2rem', sm: '2rem', md: '3rem' },
+					}}
+					>
+						<Box sx={{ display: 'flex', gap: '0.5rem' }}>
+							<Typography variant="h4">Groups: </Typography>
+							<Typography variant="h4">{groups.join(', ')}</Typography>
+						</Box>
+						<Box sx={{ display: 'flex', gap: '0.5rem' }}>
+							<Typography variant="h4">Driver: </Typography>
+							<Typography variant="h4">{driver}</Typography>
+						</Box>
+						<Box sx={{ display: 'flex', gap: '0.5rem' }}>
+							<Typography variant="h4">Vehicle: </Typography>
+							<Typography variant="h4">{device ? device : 'none'}</Typography>
+						</Box>
+						<Box sx={{ display: 'flex', gap: '0.5rem' }}>
+							<Typography variant="h4">Trailer(s): </Typography>
+							<Typography variant="h4">
+								{trailer.length > 0 ? trailer.join(', ') : 'none'}
+							</Typography>
+						</Box>
+					</Box>
+						{mobile ? <DocumentMobile files={files} devices={[device]} drivers={[driver]} trailers={[...trailer]} groups={[...groups]}/> : <DocumentTable files={files} />}
+				</>
+				) : (
+					<Box
+					sx={{
+						display: 'flex',
+						justifyContent: 'center',
+						alignItems: 'center',
+						height: '100vh',
+					}}
+				>
+					<Typography variant="h4" color="error">
+						Invalid Access Code. You are not authorized to view these documents.
 					</Typography>
 				</Box>
-			</Box>
-			{mobile ? <DocumentMobile files={files} devices={[device]} drivers={[driver]} trailers={[...trailer]} groups={[...groups]}/> : <DocumentTable files={files} />}
+				)}
+			</>
+		)}
 		</Box>
 	);
 };
