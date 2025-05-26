@@ -68,11 +68,8 @@ geotab.addin.hpgpsFilemanagerDrive = function () {
 		 */
 		focus: function (freshApi, freshState) {
 			// getting the current user to display in the UI
-			freshApi.getSession((session) => {
+			freshApi.getSession((session, server) => {
 				let calls = [];
-
-				console.log(freshState.device.id);
-
 				if (freshState.device.id === 'NoDeviceId') {
 					calls = [
 						[
@@ -181,6 +178,8 @@ geotab.addin.hpgpsFilemanagerDrive = function () {
 									root.render(
 										<App
 											api={freshApi}
+											session={session}
+											server={server}
 											database={session.database}
 											groups={getGroups(device, user, groups)}
 											device={

@@ -2,57 +2,118 @@ import React, { useEffect, useState } from 'react';
 import DocumentTable from './components/DocumentTable';
 import DocumentMobile from './components/DocumentMobile';
 
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button, CircularProgress } from '@mui/material';
 
-import { ref, getBlob } from 'firebase/storage';
+import DownloadButton from './components/DownloadButton';
 
-import { fbStorage, fbFirestore, fbAuth } from './utils/firebase';
 
-import { Box, IconButton, Tooltip, Typography } from '@mui/material';
-
-import { getAuth, signInAnonymously } from 'firebase/auth';
-
-import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
-
-async function getContentByTags(ids) {
-	// don't run if there aren't any ids or a path for the collection
-	if (!ids || !ids.length) return [];
-
-	const collectionPath = collection(fbFirestore, database);
-	const batches = [];
-
-	while (ids.length) {
-		// firestore limits batches to 10
-		const batch = ids.splice(0, 10);
-
-		// add the batch request to to a queue
-		batches.push(
-			collectionPath
-				.wh('tags', 'array-contains-any', [...batch])
-				.getDocs()
-				.then((results) => results)
-		);
-	}
-
-	// after all of the data is fetched, return it
-	return Promise.all(batches).then((content) => content.flat());
-}
-
-const App = ({ api, database, groups, driver, device, trailer }) => {
+const App = ({ database, session, server, groups, driver, device, trailer }) => {
 	const [files, setFiles] = useState([]);
 	const [mobile, setMobile] = useState(false);
+	const [validationError, setValidationError] = useState(false);
+	const [loading, setLoading] = useState(false);
+	
+	const fetchFiles = async() => {
+		setLoading(true);
 
-	const handleDownload = (filePath, fileName) => {
-		const storageRef = ref(fbStorage, filePath);
-		getBlob(storageRef)
-			.then((blob) => {
-				let link = document.createElement('a');
-				link.href = window.URL.createObjectURL(blob);
-				link.download = fileName;
-				link.click();
-			})
-			.catch((error) => console.log(error));
-	};
+		const sessionInfo = {
+			database: database,
+			sessionId:  session.sessionId,
+			userName: session.userName,
+			server: server
+		};
+
+		const queryTags = [device, driver, ...trailer, ...groups];
+
+		const messageBody = {
+			database: database,
+			session: sessionInfo,
+			tags: queryTags
+		};
+
+		try {
+
+			const response = await fetch('https://us-central1-geotabfiles.cloudfunctions.net/fetchDriveFiles',
+			{
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Accept': 'application/json'
+				},
+				body: JSON.stringify(messageBody)
+			});
+			
+			if (!response.ok) {
+				const errorData = await response.json();
+
+				if (errorData.valid === false) {
+					  setValidationError(true);
+				}
+
+				console.error('Fetched Files failed: ', errorData.error ? errorData.error : '');
+				setLoading(false);
+				return;
+			}
+
+			const data = await response.json();
+			const fetchedFiles = data.files;
+
+
+			const transformedFiles = [];
+
+			fetchedFiles.forEach(file => {
+				if (file.fileName) {
+					const associated = [];
+					file.tags.forEach((tag) => {
+						if (tag === device) {
+							associated.push(device);
+						} else if (tag === driver) {
+							associated.push(driver);
+						}
+
+						trailer.forEach((t) => {
+							if (t === tag) {
+								associated.push(t);
+							}
+						});
+
+						groups.forEach((g) => {
+							if (g === tag) {
+								associated.push(g);
+							}
+						});
+					});
+
+					transformedFiles.push({
+						...file,
+						associated,
+						action: (
+							<DownloadButton
+								filePath={file.path}
+								fileName={file.fileName}
+								database={database}
+								session={session}
+								server={server}
+								onValidationError={() => setValidationError(true)}
+							/>
+						),
+					});
+				}
+			});
+
+				setFiles([...transformedFiles]);
+
+			} catch (err) {
+				console.error('Error', err);
+				
+			} finally {
+				setLoading(false);
+			}
+	}
+
+	useEffect(() => {
+		fetchFiles();
+	}, [])
 
 	useEffect(() => {
 		function updateSize() {
@@ -60,89 +121,10 @@ const App = ({ api, database, groups, driver, device, trailer }) => {
 		}
 		window.addEventListener('resize', updateSize);
 		updateSize();
-		signInAnonymously(fbAuth)
-			.then(async () => {
-				const queryTags = [device, driver, ...trailer, ...groups];
-
-				if (queryTags.length == 0) return;
-
-				const fetchedFiles = [];
-				const batches = [];
-
-				while (queryTags.length) {
-					// firestore limits batches to 10
-					const batch = queryTags.splice(0, 30);
-					const q = query(
-						collection(fbFirestore, database),
-						where('tags', 'array-contains-any', batch)
-					);
-
-					batches.push(
-						getDocs(q)
-							.then((snapshot) => {
-								snapshot.forEach((doc) => {
-									if (doc.data().fileName) {
-										const associated = [];
-
-										doc.data().tags.forEach((tag) => {
-											if (tag === device) {
-												associated.push(device);
-											} else if (tag === driver) {
-												associated.push(driver);
-											}
-	
-											trailer.forEach((t) => {
-												if (t === tag) {
-													associated.push(t);
-												}
-											});
-	
-											groups.forEach((g) => {
-												if (g === tag) {
-													associated.push(g);
-												}
-											});
-										});
-	
-										fetchedFiles.push({
-											id: doc.id,
-											...doc.data(),
-											associated,
-											action: (
-												<Tooltip sx={{ maxWidth: '40px' }} title="Open File">
-													<IconButton
-														onClick={() =>
-															handleDownload(
-																doc.data().path,
-																doc.data().fileName
-															)
-														}
-													>
-														<OpenInNewRoundedIcon
-															fontSize="large"
-															color="primary"
-														/>
-													</IconButton>
-												</Tooltip>
-											),
-										});
-									}
-									
-								});
-							})
-							.catch((error) => {
-								console.error(error);
-							})
-					);
-				}
-
-				Promise.all(batches).then(() => setFiles(fetchedFiles));
-			})
-			.catch((error) => {
-				console.error(error);
-			});
+		
 		return () => window.removeEventListener('resize', updateSize);
 	}, []);
+
 	return (
 		<Box id="HPGPS-drive" sx={{ padding: '2rem' }}>
 			<Box
@@ -171,7 +153,33 @@ const App = ({ api, database, groups, driver, device, trailer }) => {
 					</Typography>
 				</Box>
 			</Box>
-			{mobile ? <DocumentMobile files={files} devices={[device]} drivers={[driver]} trailers={[...trailer]} groups={[...groups]}/> : <DocumentTable files={files} />}
+			{
+				loading ? (
+					<Box sx={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '250px'}}>
+					<CircularProgress />
+					</Box>
+				) : (
+					<>
+						{mobile ? <DocumentMobile files={files} devices={[device]} drivers={[driver]} trailers={[...trailer]} groups={[...groups]}/> : <DocumentTable files={files} />}
+					</>
+				)
+			}
+
+			<Dialog
+				open={validationError}
+				onClose={() => setValidationError(false)}
+				aria-labelledby="validation-error-title"
+				>
+				<DialogTitle id="validation-error-title" sx={{fontSize: 24}}>Validation Error</DialogTitle>
+				<DialogContent>
+					<Typography variant='h6'>We can not validate your Geotab Session to this database, please re authenticate with geotab or contact support.</Typography>
+				</DialogContent>
+				<DialogActions>
+					<Button variant="contained" onClick={() => setValidationError(false)}>
+						OK
+					</Button>
+				</DialogActions>
+			</Dialog>
 		</Box>
 	);
 };

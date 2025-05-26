@@ -1,7 +1,5 @@
 import React from 'react';
 import { createColumnHelper, sortingFns } from '@tanstack/react-table';
-
-import { makeid } from '../utils/formatter';
 import dayjs from 'dayjs';
 
 import { rankItem, compareItems } from '@tanstack/match-sorter-utils';

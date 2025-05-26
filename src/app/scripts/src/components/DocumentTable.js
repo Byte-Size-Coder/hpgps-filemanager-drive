@@ -103,12 +103,6 @@ const DocumentTable = ({ files }) => {
 															header.getContext()
 														)}
 													</Typography>
-													{/* {header.id !== 'action' ? (
-														<Filter
-															column={header.column}
-															name={header.column.columnDef.header()}
-														/>
-													) : null} */}
 												</>
 											)}
 										</TableCell>
